@@ -1,4 +1,4 @@
-
+#![allow(dead_code)]
 /*
  * COMMAND LINE TESTING ARGUMENTS
  * use `cargo test` to run the tests normally
