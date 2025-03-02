@@ -10,12 +10,15 @@ use minigrep::Config;
 
 fn main() {
     // create args vector, using collect method to return iterator
-    // collect needs type annotation
-    let args: Vec<String> = env::args().collect(); 
-    let n = args.len();
-    //dbg!(args); // debug macro
+    // collect needs type annotationlet args = env::args(); 
+    let n = env::args().count(); // moves out env::args(), returns usize
     
-    if let "-h" | "--help" = args[n-1].as_str() { 
+    // call eng::args() anew. check if this is a help request
+    // call to next_back() consumes an element
+    // unwrap is guaranteed an element in this case
+    let check_help = env::args().next_back().unwrap();
+    
+    if let "-h" | "--help" = check_help.as_str() { 
         minigrep::help();
         process::exit(0);
     }
@@ -32,7 +35,8 @@ fn main() {
     }
     
     if let Err(e) = minigrep::run(config) {
-        eprintln!("Application error: {e}"); // prints to standard error
+        // print to std error and exit
+        eprintln!("Application error: {e}");
         process::exit(1);
     }
 }
