@@ -11,38 +11,50 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &'static str> {
-		let query;
-		let file_path;
-		let mut ignore_case;
-		let mut verbose;
-		let mut count;
-		let n = args.len();
+    pub fn new(
+        mut args: impl Iterator<Item = String> + DoubleEndedIterator,
+        n: usize,
+    ) -> Result<Config, &'static str> {
+		/* new now uses iterators to construct the config from args.
+		 * included ` + DoubleEndedIterator` to allow for `next_back`.
+		 */
+		let query: String;
+		let file_path: String;
+		let mut ignore_case: bool;
+		let mut verbose: bool;
+		let mut count: bool;
+		
+		if n < 3 {
+            // error values will be string literals with 'static lifetime
+            return Err("not enough arguments provided");
+        }
 		
 		// env::var returns a Result, is_ok returns bool 
         ignore_case = env::var("IGNORE_CASE").is_ok();
         verbose = env::var("VERBOSE").is_ok();
         count = env::var("COUNT").is_ok();
 		
-        if n < 3 {
-            // error values will be string literals with 'static lifetime
-            return Err("not enough arguments provided");
-        } else if n == 3 {
-			query = args[1].clone();
-			file_path = args[2].clone();
-		} else {
-			query = args[n-2].clone();
-			file_path = args[n-1].clone();
-			for arg in &args[1..(n-2)] {
-				match arg.as_str() {
-					"-i" | "--ignore-case" => ignore_case = true,
-					"-v" | "--verbose" => verbose = true,
-					"-c" | "--count" => count = true,
-					_ => return Err("unrecognized argument"),
-				}
+		file_path = match args.next_back() { // consume from the end
+            Some(arg) => arg,
+            None => return Err("Didn't get a file path"),
+        };
+        
+        query = match args.next_back() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
+        
+        args.next();
+		
+		while let Some(arg) = args.next() {
+			match arg.as_str() {
+				"-i" | "--ignore-case" => ignore_case = true,
+				"-v" | "--verbose" => verbose = true,
+				"-c" | "--count" => count = true,
+				_ => return Err("unrecognized argument"),
 			}
 		}
-        
+		
         Ok(Config { query, file_path, ignore_case, verbose, count })
     }
 }
@@ -117,29 +129,18 @@ pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
 	 * that the lifetime of data from our document's contents will need 
 	 * to live on with our returned vector
 	 */
-	 let mut results = Vec::new();
-	 for line in contents.lines() { // lines returns an iterator
-		 if line.contains(query) {
-			 results.push(line);
-		 }
-	 }
-	 
-	 results	
+	 contents.lines() // lines makes an iterator of contents
+			 .filter(|line| line.contains(query))
+			 .collect()
 }
 
 pub fn search_case_insensitive<'a>(
 	query: &str, contents: &'a str) -> Vec<&'a str> {
 	
-	let query: String = query.to_lowercase();
-	let mut results = Vec::new();
-	
-	for line in contents.lines() {
-		if line.to_lowercase().contains(&query) { // note: &query
-			results.push(line);
-		}
-	}
-	
-	results
+	let query: String = query.to_lowercase();	
+	contents.lines()
+			.filter(|line| line.to_lowercase().contains(&query))
+			.collect()
 }
 
 pub fn count(results: & Vec<&str>) -> String {

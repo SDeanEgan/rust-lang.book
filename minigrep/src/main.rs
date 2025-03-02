@@ -20,7 +20,7 @@ fn main() {
         process::exit(0);
     }
     
-    let config = Config::new(&args).unwrap_or_else(|err| {
+    let config = Config::new(env::args(), n).unwrap_or_else(|err| {
         // unwrap_or_else is a Result method, this is its closure
         eprintln!("Problem parsing arguments: {err}");
         // exiting the command line tool with a nonzero error code 
